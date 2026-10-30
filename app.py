@@ -31,7 +31,7 @@ uncertainty = joblib.load(uncertainty_path)
 
 featurizer, feature_columns = get_featurizer()
 
-return model, ad, uncertainty, featurizer, feature_columns</escape>
+return model, ad, uncertainty, featurizer, feature_columns
 try:
     model, ad, uncertainty, featurizer, feature_columns = load_assets()
 except Exception as e:
