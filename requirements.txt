@@ -1,0 +1,7 @@
+streamlit
+numpy
+pandas
+scikit-learn
+joblib
+rdkit
+polymetrix==0.2.0
