@@ -8,13 +8,30 @@ from featurizer import get_featurizer
 st.set_page_config(page_title="Polymer Tg Predictor", page_icon="🧪", layout="wide")
 st.title("Polymer Property Prediction AI")
 st.write("Predict the glass transition temperature (Tg) of polymers from their polymer SMILES.")
-@st.cache_resource
-def load_assets():
-    model = joblib.load("polymer_tg_extra_trees.pkl")
-    ad = joblib.load("applicability_domain.pkl")
-    uncertainty = joblib.load("uncertainty_configuration.pkl")
-    featurizer, feature_columns = get_featurizer()
-    return model, ad, uncertainty, featurizer, feature_columns
+repo_id = "Abdulroheem/PolyTg"
+
+model_path = hf_hub_download(
+    repo_id=repo_id,
+    filename="polymer_tg_extra_trees.pkl"
+)
+
+ad_path = hf_hub_download(
+    repo_id=repo_id,
+    filename="applicability_domain.pkl"
+)
+
+uncertainty_path = hf_hub_download(
+    repo_id=repo_id,
+    filename="uncertainty_configuration.pkl"
+)
+
+model = joblib.load(model_path)
+ad = joblib.load(ad_path)
+uncertainty = joblib.load(uncertainty_path)
+
+featurizer, feature_columns = get_featurizer()
+
+return model, ad, uncertainty, featurizer, feature_columns</escape>
 try:
     model, ad, uncertainty, featurizer, feature_columns = load_assets()
 except Exception as e:
