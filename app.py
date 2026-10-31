@@ -1,234 +1,214 @@
+
 import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
-
-from huggingface_hub import hf_hub_download
-from featurizer import get_featurizer
-from polymetrix.featurizers.polymer import Polymer
-
 
 st.set_page_config(
-    page_title="Polymer Tg Predictor",
+    page_title="PolyTg | Polymer Intelligence",
     page_icon="🧪",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title("Polymer Property Prediction AI")
+# ---------- PAGE STYLE ----------
 
-st.write(
-    "Predict the glass transition temperature (Tg) "
-    "of polymers from their polymer SMILES."
-)
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #07111f;
+        color: #e5edf5;
+    }
+
+    [data-testid="stSidebar"] {
+        background-color: #0b1929;
+        border-right: 1px solid #1c3448;
+    }
+
+    .hero {
+        padding: 65px 10px 45px 10px;
+    }
+
+    .eyebrow {
+        color: #35d0c1;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+
+    .hero h1 {
+        color: #f3f7fb;
+        font-size: 58px;
+        font-weight: 750;
+        line-height: 1.1;
+        margin-top: 18px;
+        margin-bottom: 20px;
+    }
+
+    .hero p {
+        color: #a9bacb;
+        font-size: 18px;
+        line-height: 1.8;
+        max-width: 760px;
+    }
+
+    .accent {
+        color: #35d0c1;
+    }
+
+    .section-label {
+        color: #35d0c1;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
+    }
+
+    .info-card {
+        background: #0d1d2e;
+        border: 1px solid #1b354a;
+        border-radius: 12px;
+        padding: 24px;
+        min-height: 175px;
+    }
+
+    .info-card h3 {
+        color: #f0f5fa;
+        font-size: 19px;
+    }
+
+    .info-card p {
+        color: #a9bacb;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .footer {
+        color: #71869b;
+        font-size: 12px;
+        border-top: 1px solid #1b354a;
+        padding-top: 20px;
+        margin-top: 65px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
-@st.cache_resource
-def load_assets():
-    repo_id = "Abdulroheem/PolyTg"
+# ---------- SIDEBAR ----------
 
-    model_path = hf_hub_download(
-        repo_id=repo_id,
-        filename="polymer_tg_extra_trees.pkl"
+with st.sidebar:
+    st.markdown("## 🧪 PolyTg")
+    st.caption("POLYMER INTELLIGENCE")
+    st.divider()
+
+    st.markdown("### Navigation")
+    st.page_link("app.py", label="Home", icon="🏠")
+    st.page_link(
+        "pages/Tg_Predictor.py",
+        label="Tg Predictor",
+        icon="🧬"
     )
 
-    ad_path = hf_hub_download(
-        repo_id=repo_id,
-        filename="applicability_domain.pkl"
+
+# ---------- HERO SECTION ----------
+
+st.markdown("""
+<div class="hero">
+    <div class="eyebrow">Machine Learning · Polymer Science</div>
+
+    <h1>
+        Understanding polymers.<br>
+        Predicting <span class="accent">possibilities.</span>
+    </h1>
+
+    <p>
+        PolyTg is a machine-learning platform for estimating the
+        glass transition temperature of polymers from their
+        polymer SMILES structures.
+        
+        By combining polymer descriptors, predictive modelling,
+        uncertainty estimation and applicability-domain assessment,
+        PolyTg provides a research-oriented approach to polymer
+        property prediction.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ---------- CALL TO ACTION ----------
+
+left, right = st.columns([1, 1])
+
+with left:
+    if st.button(
+        "Open Tg Predictor →",
+        type="primary",
+        use_container_width=True
+    ):
+        st.switch_page("pages/Tg_Predictor.py")
+
+with right:
+    st.markdown(
+        "<p style='color:#8da3b8; padding-top:8px;'>"
+        "Explore the platform and its scientific methodology."
+        "</p>",
+        unsafe_allow_html=True
     )
-
-    uncertainty_path = hf_hub_download(
-        repo_id=repo_id,
-        filename="uncertainty_configuration.pkl"
-    )
-
-    model = joblib.load(model_path)
-    ad = joblib.load(ad_path)
-    uncertainty = joblib.load(uncertainty_path)
-
-    featurizer, feature_columns = get_featurizer()
-
-    return model, ad, uncertainty, featurizer, feature_columns
-
-
-try:
-    (
-        model,
-        ad,
-        uncertainty,
-        featurizer,
-        feature_columns
-    ) = load_assets()
-
-except Exception as e:
-    import traceback
-
-    st.error(f"Could not load project files: {e}")
-    st.code(traceback.format_exc())
-    st.stop()
-
-
-st.subheader("Enter polymer structure")
-
-psmiles = st.text_input(
-    "Polymer SMILES (PSMILES)",
-    placeholder="Enter a valid polymer SMILES"
-)
-
-
-if st.button("Predict Tg", type="primary"):
-
-    if not psmiles.strip():
-        st.warning("Please enter a polymer SMILES.")
-
-    else:
-        try:
-            polymer = Polymer.from_psmiles(psmiles)
-
-            features = np.asarray(
-                featurizer.featurize(polymer)
-            )
-
-            if features.ndim == 1:
-                features = features.reshape(1, -1)
-
-            generated_columns = list(feature_columns)
-            expected_columns = list(ad["feature_columns"])
-
-            if features.shape[1] != len(generated_columns):
-                raise ValueError(
-                    "Generated feature count does not match "
-                    "the featurizer's feature labels."
-                )
-
-            if len(set(generated_columns)) != len(generated_columns):
-                raise ValueError(
-                    "Duplicate feature names were generated."
-                )
-
-            if set(generated_columns) != set(expected_columns):
-                missing = [
-                    name for name in expected_columns
-                    if name not in generated_columns
-                ]
-
-                unexpected = [
-                    name for name in generated_columns
-                    if name not in expected_columns
-                ]
-
-                raise ValueError(
-                    f"Feature names do not match the trained model. "
-                    f"Missing: {missing}. Unexpected: {unexpected}."
-                )
-
-            # Reorder descriptor values to match the training model.
-            feature_positions = {
-                name: index
-                for index, name in enumerate(generated_columns)
-            }
-
-            reorder_indices = [
-                feature_positions[name]
-                for name in expected_columns
-            ]
-
-            features = features[:, reorder_indices]
-
-            X = pd.DataFrame(
-                features,
-                columns=expected_columns
-            )
-
-            # Predict glass transition temperature.
-            prediction = float(model.predict(X)[0])
-
-            margin = float(
-                uncertainty["conformal_threshold"]
-            )
-
-            lower = prediction - margin
-            upper = prediction + margin
-
-            st.subheader("Prediction")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.metric(
-                    "Predicted Tg (Kelvin)",
-                    f"{prediction:.2f} K"
-                )
-
-                st.metric(
-                    "Predicted Tg (Celsius)",
-                    f"{prediction - 273.15:.2f} °C"
-                )
-
-            with col2:
-                st.metric(
-                    "90% Conformal Interval",
-                    f"{lower:.2f} – {upper:.2f} K"
-                )
-
-                st.metric(
-                    "Interval Width",
-                    f"{2 * margin:.2f} K"
-                )
-
-            # Applicability-domain assessment.
-            scaled = ad["scaler"].transform(X)
-
-            distance = float(
-                ad["nearest_neighbors"].kneighbors(
-                    scaled,
-                    n_neighbors=1
-                )[0][0][0]
-            )
-
-            threshold = float(ad["ad_threshold"])
-
-            st.subheader("Applicability Domain")
-
-            st.write(
-                f"Nearest-neighbour distance: {distance:.3f}"
-            )
-
-            st.write(
-                f"Applicability-domain threshold: {threshold:.3f}"
-            )
-
-            if distance <= threshold:
-                st.success(
-                    "Within the model's applicability domain."
-                )
-            else:
-                st.warning(
-                    "Outside the model's applicability domain. "
-                    "Treat this prediction with extra caution."
-                )
-
-            st.caption(
-                "The conformal interval is based on calibration data "
-                "and provides marginal coverage under exchangeability. "
-                "It is not a guarantee for an individual polymer. "
-                "Applicability-domain status is a caution flag, "
-                "not a probability."
-            )
-
-        except Exception as e:
-            import traceback
-
-            st.error(f"Prediction failed: {e}")
-            st.code(traceback.format_exc())
-
-            st.info(
-                "Check that the PSMILES is valid and supported "
-                "by the featurizer."
-            )
 
 
 st.divider()
 
-st.caption(
-    "Research prototype | ExtraTrees | 100 polymer descriptors"
+
+# ---------- PLATFORM OVERVIEW ----------
+
+st.markdown(
+    '<div class="section-label">PLATFORM OVERVIEW</div>',
+    unsafe_allow_html=True
 )
+
+st.markdown("## What PolyTg offers")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""
+    <div class="info-card">
+        <h3>🧬 Polymer Representation</h3>
+        <p>
+            Submit polymer SMILES structures and generate
+            molecular and polymer-level descriptors for
+            machine-learning inference.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""
+    <div class="info-card">
+        <h3>📊 Tg Prediction</h3>
+        <p>
+            Estimate polymer glass transition temperature
+            in Kelvin and Celsius using a trained ExtraTrees
+            regression model.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""
+    <div class="info-card">
+        <h3>🎯 Prediction Assessment</h3>
+        <p>
+            Examine conformal prediction intervals and
+            applicability-domain assessments to understand
+            prediction uncertainty and limitations.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ---------- FOOTER ----------
+
+st.markdown("""
+<div class="footer">
+    PolyTg · Research Prototype<br>
+    Machine Learning for Polymer Property Prediction
+</div>
+""", unsafe_allow_html=True)
