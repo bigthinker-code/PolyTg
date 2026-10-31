@@ -67,7 +67,9 @@ try:
     ) = load_assets()
 
 except Exception as e:
-    st.error(f"Could not load project files: {e}")
+    import traceback
+    st.error(f"Prediction failed: {e}")
+    st.code(traceback.format_exc())
     st.stop()
 
 
