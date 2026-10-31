@@ -442,8 +442,68 @@ h2 {
         margin-top:28px;
     ">
         <div>
-            <div class="eyebrow">APPLICABILITY DOMAIN</div>
-            <div id="resultAD" style="font-size:17px;font-weight:750;margin-top:8px;">—</div>
+            <div class="panel" style="
+    margin-top:20px;
+    padding:26px;
+    background:linear-gradient(135deg,#101f30,#0a1521);
+">
+    <div class="eyebrow">MODEL RELIABILITY CHECK</div>
+
+    <h3 style="margin-top:12px;">Applicability Domain</h3>
+
+    <div style="
+        display:flex;
+        align-items:center;
+        gap:12px;
+        margin:20px 0;
+        flex-wrap:wrap;
+    ">
+        <div id="adIndicator" style="
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            background:#8b9aaa;
+        "></div>
+
+        <div id="adHeading" style="
+            font-size:19px;
+            font-weight:800;
+        ">Awaiting assessment</div>
+    </div>
+
+    <p id="adDescription" class="section-desc">
+        The model will assess how similar the submitted polymer is
+        to the structures represented in its training data.
+    </p>
+
+    <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:14px;
+        margin-top:22px;
+    ">
+        <div>
+            <div class="eyebrow">NEAREST-NEIGHBOUR DISTANCE</div>
+            <div id="adDistance" style="
+                font-size:15px;
+                font-weight:700;
+                margin-top:9px;
+                color:var(--cyan);
+            ">—</div>
+        </div>
+    </div>
+
+    <p style="
+        margin-top:20px;
+        font-size:12px;
+        line-height:1.7;
+        color:#91a8b9;
+    ">
+        This assessment is a similarity-based warning, not a probability
+        that the prediction is correct. Predictions outside the defined
+        domain should be interpreted with additional caution.
+    </p>
+</div>
         </div>
 
         <div>
@@ -895,19 +955,28 @@ h2 {
         const adHeading = document.getElementById("adHeading");
         const adDescription = document.getElementById("adDescription");
 
-        if (data.within_domain) {
-            document.getElementById("resultAD").textContent = "Within";
+        const adIndicator = document.getElementById("adIndicator");
 
-            adHeading.textContent = "Within applicability domain";
-            adDescription.textContent =
-                "The polymer is within the model's defined applicability-domain threshold.";
-        } else {
-            document.getElementById("resultAD").textContent = "Outside";
+if (data.within_domain) {
+    document.getElementById("resultAD").textContent = "Within";
 
-            adHeading.textContent = "Outside applicability domain";
-            adDescription.textContent =
-                "Treat this prediction with extra caution. The input is beyond the model's defined applicability-domain threshold.";
-        }
+    adHeading.textContent = "Within applicability domain";
+    adDescription.textContent =
+        "This polymer falls within the model's defined similarity threshold. The prediction is supported by the model's training-data domain, but is not guaranteed to be accurate.";
+
+    adIndicator.style.background = "#35d6bd";
+    adIndicator.style.boxShadow = "0 0 12px #35d6bd";
+
+} else {
+    document.getElementById("resultAD").textContent = "Outside";
+
+    adHeading.textContent = "Outside applicability domain";
+    adDescription.textContent =
+        "This polymer falls outside the model's defined similarity threshold. Interpret its predicted Tg with additional caution.";
+
+    adIndicator.style.background = "#ffb45e";
+    adIndicator.style.boxShadow = "0 0 12px #ffb45e";
+}
 
         document.getElementById("adDistance").textContent =
             "Nearest-neighbour distance: " + data.nearest_distance +
