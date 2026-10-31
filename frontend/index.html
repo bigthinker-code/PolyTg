@@ -688,10 +688,8 @@ h2 {
     }
 
     function setFrameHeight() {
-        sendToStreamlit("streamlit:setFrameHeight", {
-            height: document.body.scrollHeight + 50
-        });
-    }
+    // Fixed iframe height is controlled by Streamlit.
+}
 
     function setComponentValue(value) {
         sendToStreamlit("streamlit:setComponentValue", {
@@ -860,12 +858,6 @@ h2 {
 
         if (args.error) {
             displayError(args.error);
-        }
-
-        if (typeof args.height === "number") {
-            sendToStreamlit("streamlit:setFrameHeight", {
-                height: args.height
-            });
         }
     }
 
