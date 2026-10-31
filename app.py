@@ -109,9 +109,25 @@ if st.button("Predict Tg", type="primary"):
             expected_columns = ad["feature_columns"]
 
             if list(feature_columns) != list(expected_columns):
-                raise ValueError(
-                    "Feature order does not match the training model."
-                )
+    st.error("Feature order mismatch")
+
+    st.write("Generated feature count:", len(feature_columns))
+    st.write("Expected feature count:", len(expected_columns))
+
+    differences = []
+
+    for i, (generated, expected) in enumerate(
+        zip(feature_columns, expected_columns)
+    ):
+        if generated != expected:
+            differences.append({
+                "Position": i,
+                "Generated": generated,
+                "Expected": expected
+            })
+
+    st.dataframe(pd.DataFrame(differences))
+    st.stop()
 
             X = pd.DataFrame(
                 features,
