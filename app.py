@@ -91,48 +91,55 @@ if st.button("Predict Tg", type="primary"):
             if features.ndim == 1:
                 features = features.reshape(1, -1)
 
-            if features.shape[1] != len(feature_columns):
+            generated_columns = list(feature_columns)
+            expected_columns = list(ad["feature_columns"])
+
+            if features.shape[1] != len(generated_columns):
                 raise ValueError(
                     "Generated feature count does not match "
-                    "the expected feature count."
+                    "the featurizer's feature labels."
                 )
 
-            expected_columns = list(ad["feature_columns"])
-            generated_columns = list(feature_columns)
-
-            if generated_columns != expected_columns:
-                st.error("Feature order mismatch")
-
-                st.write(
-                    "Generated feature count:",
-                    len(generated_columns)
+            if len(set(generated_columns)) != len(generated_columns):
+                raise ValueError(
+                    "Duplicate feature names were generated."
                 )
 
-                st.write(
-                    "Expected feature count:",
-                    len(expected_columns)
+            if set(generated_columns) != set(expected_columns):
+                missing = [
+                    name for name in expected_columns
+                    if name not in generated_columns
+                ]
+
+                unexpected = [
+                    name for name in generated_columns
+                    if name not in expected_columns
+                ]
+
+                raise ValueError(
+                    f"Feature names do not match the trained model. "
+                    f"Missing: {missing}. Unexpected: {unexpected}."
                 )
 
-                differences = []
+            # Reorder descriptor values to match the training model.
+            feature_positions = {
+                name: index
+                for index, name in enumerate(generated_columns)
+            }
 
-                for i, (generated, expected) in enumerate(
-                    zip(generated_columns, expected_columns)
-                ):
-                    if generated != expected:
-                        differences.append({
-                            "Position": i,
-                            "Generated": generated,
-                            "Expected": expected
-                        })
+            reorder_indices = [
+                feature_positions[name]
+                for name in expected_columns
+            ]
 
-                st.dataframe(pd.DataFrame(differences))
-                st.stop()
+            features = features[:, reorder_indices]
 
             X = pd.DataFrame(
                 features,
-                columns=generated_columns
+                columns=expected_columns
             )
 
+            # Predict glass transition temperature.
             prediction = float(model.predict(X)[0])
 
             margin = float(
@@ -168,6 +175,7 @@ if st.button("Predict Tg", type="primary"):
                     f"{2 * margin:.2f} K"
                 )
 
+            # Applicability-domain assessment.
             scaled = ad["scaler"].transform(X)
 
             distance = float(
