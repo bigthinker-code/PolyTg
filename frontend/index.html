@@ -449,6 +449,7 @@ h2 {
     </div>
 </section>
 
+
 <!-- PREDICTOR -->
 <section class="page" id="predictor">
     <div class="eyebrow">MODEL INTERFACE · INFERENCE</div>
@@ -457,11 +458,83 @@ h2 {
         Submit a polymer SMILES structure to estimate its glass transition temperature.
     </p>
 
-    <div class="panel placeholder">
-        <div>
-            <div style="font-size:35px;margin-bottom:15px;">⌬</div>
-            <strong>Prediction interface coming next</strong>
-            <p>We will connect this workspace to your existing Python prediction pipeline.</p>
+    <div class="panel">
+        <h3>Polymer structure input</h3>
+        <label for="psmiles" class="section-desc">
+            Polymer SMILES (PSMILES)
+        </label>
+
+        <textarea
+            id="psmiles"
+            placeholder="Enter polymer SMILES, e.g. [*]CC[*]"
+            style="width:100%;min-height:110px;margin-top:12px;padding:15px;background:#07111d;color:#edf4fa;border:1px solid #294052;border-radius:9px;font-family:monospace;font-size:14px;resize:vertical;"
+        ></textarea>
+
+        <div class="actions">
+            <button class="primary-btn" id="predictBtn">
+                Execute Prediction →
+            </button>
+            <button class="secondary-btn" id="clearBtn">
+                Clear
+            </button>
+        </div>
+
+        <p id="predictionStatus" class="section-desc" style="margin-top:15px;">
+            Ready for polymer input.
+        </p>
+    </div>
+
+    <div id="predictionResults" style="display:none;">
+        <div class="section-head">
+            <div>
+                <div class="eyebrow">INFERENCE OUTPUT</div>
+                <h2>Prediction results</h2>
+            </div>
+            <span class="tag">MODEL OUTPUT</span>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" id="resultK">—</div>
+                <div class="stat-label">PREDICTED Tg · KELVIN</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="resultC">—</div>
+                <div class="stat-label">PREDICTED Tg · CELSIUS</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="resultAD">—</div>
+                <div class="stat-label">APPLICABILITY DOMAIN</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="resultWidth">—</div>
+                <div class="stat-label">INTERVAL WIDTH</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="eyebrow">UNCERTAINTY ASSESSMENT</div>
+            <h3>90% Conformal Prediction Interval</h3>
+            <div id="resultInterval" style="font-size:25px;color:var(--cyan);font-weight:800;">
+                —
+            </div>
+            <p class="section-desc">
+                This interval is based on calibration data. It does not guarantee
+                the true Tg of an individual polymer.
+            </p>
+        </div>
+
+        <div class="panel">
+            <div class="eyebrow">APPLICABILITY DOMAIN</div>
+            <h3 id="adHeading">—</h3>
+            <p class="section-desc" id="adDescription">—</p>
+            <p class="section-desc" id="adDistance">—</p>
+        </div>
+
+        <div class="panel">
+            <div class="eyebrow">INPUT STRUCTURE</div>
+            <h3>Submitted PSMILES</h3>
+            <code id="resultPSMILES" style="color:var(--cyan);overflow-wrap:anywhere;">—</code>
         </div>
     </div>
 </section>
@@ -589,27 +662,223 @@ h2 {
 </main>
 
 <script>
-function showPage(pageName) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
 
-    document.querySelectorAll('.nav button').forEach(button => {
-        button.classList.toggle(
-            'active',
-            button.dataset.page === pageName
+(function () {
+    "use strict";
+
+    // -----------------------------------------
+    // Streamlit component communication
+    // -----------------------------------------
+
+    function sendToStreamlit(type, data = {}) {
+        window.parent.postMessage(
+            {
+                isStreamlitMessage: true,
+                type: type,
+                ...data
+            },
+            "*"
         );
+    }
+
+    function setComponentReady() {
+        sendToStreamlit("streamlit:componentReady", {
+            apiVersion: 1
+        });
+    }
+
+    function setFrameHeight() {
+        sendToStreamlit("streamlit:setFrameHeight", {
+            height: document.body.scrollHeight + 50
+        });
+    }
+
+    function setComponentValue(value) {
+        sendToStreamlit("streamlit:setComponentValue", {
+            value: value,
+            dataType: "json"
+        });
+    }
+
+    // -----------------------------------------
+    // Navigation
+    // -----------------------------------------
+
+    window.showPage = function (pageName) {
+        document.querySelectorAll(".page").forEach(page => {
+            page.classList.remove("active");
+        });
+
+        document.querySelectorAll(".nav button").forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.page === pageName
+            );
+        });
+
+        const target = document.getElementById(pageName);
+
+        if (target) {
+            target.classList.add("active");
+        }
+
+        setFrameHeight();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    document.querySelectorAll(".nav button").forEach(button => {
+        button.addEventListener("click", () => {
+            window.showPage(button.dataset.page);
+        });
     });
 
-    document.getElementById(pageName).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+    // -----------------------------------------
+    // Predictor controls
+    // -----------------------------------------
 
-document.querySelectorAll('.nav button').forEach(button => {
-    button.addEventListener('click', () => {
-        showPage(button.dataset.page);
+    const predictBtn = document.getElementById("predictBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const psmilesInput = document.getElementById("psmiles");
+    const status = document.getElementById("predictionStatus");
+
+    let busy = false;
+
+    predictBtn.addEventListener("click", function () {
+        if (busy) return;
+
+        const psmiles = psmilesInput.value.trim();
+
+        if (!psmiles) {
+            status.textContent = "Please enter a polymer SMILES.";
+            return;
+        }
+
+        busy = true;
+        predictBtn.disabled = true;
+        predictBtn.textContent = "Processing...";
+        status.textContent = "Generating polymer descriptors and running prediction...";
+
+        document.getElementById("predictionResults").style.display = "none";
+
+        setComponentValue({
+            action: "predict",
+            psmiles: psmiles
+        });
     });
-});
+
+    clearBtn.addEventListener("click", function () {
+        psmilesInput.value = "";
+        document.getElementById("predictionResults").style.display = "none";
+
+        status.textContent = "Ready for polymer input.";
+
+        busy = false;
+        predictBtn.disabled = false;
+        predictBtn.textContent = "Execute Prediction →";
+
+        setFrameHeight();
+    });
+
+    // -----------------------------------------
+    // Display prediction results
+    // -----------------------------------------
+
+    function displayResults(data) {
+        if (!data || !data.success) return;
+
+        document.getElementById("resultK").textContent =
+            data.prediction_kelvin + " K";
+
+        document.getElementById("resultC").textContent =
+            data.prediction_celsius + " °C";
+
+        document.getElementById("resultWidth").textContent =
+            data.interval_width + " K";
+
+        document.getElementById("resultInterval").textContent =
+            data.lower_bound + " – " + data.upper_bound + " K";
+
+        document.getElementById("resultPSMILES").textContent =
+            data.psmiles;
+
+        const adHeading = document.getElementById("adHeading");
+        const adDescription = document.getElementById("adDescription");
+
+        if (data.within_domain) {
+            document.getElementById("resultAD").textContent = "Within";
+
+            adHeading.textContent = "Within applicability domain";
+            adDescription.textContent =
+                "The polymer is within the model's defined applicability-domain threshold.";
+        } else {
+            document.getElementById("resultAD").textContent = "Outside";
+
+            adHeading.textContent = "Outside applicability domain";
+            adDescription.textContent =
+                "Treat this prediction with extra caution. The input is beyond the model's defined applicability-domain threshold.";
+        }
+
+        document.getElementById("adDistance").textContent =
+            "Nearest-neighbour distance: " + data.nearest_distance +
+            " | Threshold: " + data.ad_threshold;
+
+        document.getElementById("predictionResults").style.display = "block";
+
+        status.textContent = "Prediction completed successfully.";
+
+        busy = false;
+        predictBtn.disabled = false;
+        predictBtn.textContent = "Execute Prediction →";
+
+        setFrameHeight();
+    }
+
+    function displayError(message) {
+        status.textContent = "Prediction failed: " + message;
+
+        busy = false;
+        predictBtn.disabled = false;
+        predictBtn.textContent = "Execute Prediction →";
+
+        setFrameHeight();
+    }
+
+    // -----------------------------------------
+    // Receive Python responses
+    // -----------------------------------------
+
+    function onStreamlitRender(event) {
+        if (!event.data || event.data.type !== "streamlit:render") {
+            return;
+        }
+
+        const args = event.data.args || {};
+
+        if (args.results) {
+            displayResults(args.results);
+        }
+
+        if (args.error) {
+            displayError(args.error);
+        }
+
+        if (typeof args.height === "number") {
+            sendToStreamlit("streamlit:setFrameHeight", {
+                height: args.height
+            });
+        }
+    }
+
+    window.addEventListener("message", onStreamlitRender);
+
+    // -----------------------------------------
+    // Initialise
+    // -----------------------------------------
+
+    setComponentReady();
+    setFrameHeight();
+
+})();
 </script>
 
 </body>
