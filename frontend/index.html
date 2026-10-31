@@ -1,0 +1,616 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolyTg | Polymer Intelligence</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --bg: #070b12;
+    --panel: #0d1420;
+    --panel2: #111c2a;
+    --border: #1d2b3b;
+    --text: #edf4fa;
+    --muted: #8b9bad;
+    --cyan: #49d9d0;
+    --green: #a3e6b1;
+    --blue: #70a9ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(ellipse at 75% 0%, #12313b55, transparent 40%),
+        radial-gradient(ellipse at 5% 70%, #10243b55, transparent 40%),
+        var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+.topbar {
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6%;
+    border-bottom: 1px solid var(--border);
+    background: #070b12d9;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(16px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    background: #123b40;
+    color: var(--cyan);
+    font-size: 21px;
+}
+
+.brand-name { font-size: 20px; font-weight: 800; letter-spacing: -.7px; }
+.brand-sub { color: var(--muted); font-size: 10px; letter-spacing: 2px; }
+
+.nav {
+    display: flex;
+    gap: 7px;
+}
+
+.nav button {
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.nav button:hover,
+.nav button.active {
+    color: var(--cyan);
+    background: #15303966;
+    border-color: #28515a;
+}
+
+.status {
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+main {
+    max-width: 1250px;
+    margin: auto;
+    padding: 55px 5% 80px;
+}
+
+.page { display: none; animation: appear .35s ease; }
+.page.active { display: block; }
+
+@keyframes appear {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.eyebrow {
+    color: var(--cyan);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.hero {
+    padding: 55px 0 65px;
+    max-width: 850px;
+}
+
+.hero h1 {
+    font-size: clamp(42px, 7vw, 76px);
+    line-height: 1.04;
+    letter-spacing: -3.5px;
+    margin: 20px 0;
+}
+
+.hero h1 span { color: var(--cyan); }
+
+.hero p {
+    color: #a4b3c3;
+    max-width: 690px;
+    font-size: 16px;
+    line-height: 1.9;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+}
+
+.primary-btn, .secondary-btn {
+    padding: 13px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.primary-btn {
+    background: var(--cyan);
+    color: #061216;
+    border: 1px solid var(--cyan);
+}
+
+.primary-btn:hover { background: #8af0e7; }
+
+.secondary-btn {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.secondary-btn:hover { border-color: var(--cyan); }
+
+.section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 15px 0 22px;
+}
+
+h2 {
+    font-size: 27px;
+    letter-spacing: -.8px;
+    margin: 9px 0;
+}
+
+.section-desc { color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.card {
+    background: linear-gradient(145deg, #111d2a, #0b131e);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 23px;
+    min-height: 185px;
+}
+
+.card-icon {
+    font-size: 23px;
+    margin-bottom: 22px;
+}
+
+.card h3 { font-size: 16px; margin: 0 0 10px; }
+.card p { color: var(--muted); font-size: 13px; line-height: 1.8; margin: 0; }
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+    margin: 35px 0;
+}
+
+.stat {
+    border: 1px solid var(--border);
+    background: #0b1420;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.stat-value {
+    color: var(--cyan);
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 7px;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 25px;
+    margin-top: 20px;
+}
+
+.panel h3 { margin-top: 0; font-size: 16px; }
+
+.tag {
+    display: inline-block;
+    color: var(--cyan);
+    background: #15343a;
+    border: 1px solid #24505a;
+    border-radius: 5px;
+    padding: 5px 9px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    margin: 4px 3px 4px 0;
+}
+
+.workflow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.workflow-item {
+    border-left: 2px solid var(--cyan);
+    padding: 12px 15px;
+    background: #101b28;
+    border-radius: 0 8px 8px 0;
+}
+
+.workflow-item strong { display: block; font-size: 13px; margin-bottom: 7px; }
+.workflow-item span { color: var(--muted); font-size: 11px; line-height: 1.6; }
+
+.footer {
+    border-top: 1px solid var(--border);
+    margin-top: 70px;
+    padding-top: 25px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    color: #66798d;
+    font-size: 11px;
+}
+
+.footer strong { color: var(--cyan); }
+
+.placeholder {
+    min-height: 300px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--muted);
+}
+
+.placeholder strong { color: var(--cyan); }
+
+@media(max-width: 850px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .workflow { grid-template-columns: 1fr 1fr; }
+    .status { display: none; }
+}
+
+@media(max-width: 600px) {
+    .topbar { padding: 0 4%; height: auto; min-height: 70px; flex-wrap: wrap; }
+    .nav { width: 100%; overflow-x: auto; padding: 8px 0; }
+    .nav button { white-space: nowrap; }
+    main { padding-top: 25px; }
+    .hero { padding: 35px 0 45px; }
+    .hero h1 { letter-spacing: -2px; }
+    .grid, .stats, .workflow { grid-template-columns: 1fr; }
+    .footer { flex-direction: column; }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-icon">⌬</div>
+        <div>
+            <div class="brand-name">PolyTg</div>
+            <div class="brand-sub">POLYMER INTELLIGENCE</div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <button class="active" data-page="home">Overview</button>
+        <button data-page="predictor">Predictor</button>
+        <button data-page="architecture">Architecture</button>
+        <button data-page="validation">Validation</button>
+        <button data-page="about">About</button>
+    </nav>
+
+    <div class="status">● RESEARCH PROTOTYPE</div>
+</header>
+
+<main>
+
+<!-- OVERVIEW -->
+<section class="page active" id="home">
+    <div class="hero">
+        <div class="eyebrow">Machine Learning · Polymer Science</div>
+
+        <h1>
+            Understanding polymers.<br>
+            Predicting <span>possibilities.</span>
+        </h1>
+
+        <p>
+            PolyTg is a machine-learning platform designed to estimate
+            the glass transition temperature of polymers from their
+            polymer SMILES representations. It combines polymer
+            descriptors, ensemble learning, uncertainty estimation
+            and applicability-domain assessment.
+        </p>
+
+        <div class="actions">
+            <button class="primary-btn" onclick="showPage('predictor')">
+                Open Tg Predictor →
+            </button>
+            <button class="secondary-btn" onclick="showPage('architecture')">
+                Explore the model
+            </button>
+        </div>
+    </div>
+
+    <div class="section-head">
+        <div>
+            <div class="eyebrow">PLATFORM CAPABILITIES</div>
+            <h2>From structure to property insight.</h2>
+        </div>
+    </div>
+
+    <div class="grid">
+        <article class="card">
+            <div class="card-icon">⌬</div>
+            <h3>Polymer Representation</h3>
+            <p>
+                Accepts polymer SMILES structures and converts them
+                into a structured set of polymer-level descriptors.
+            </p>
+        </article>
+
+        <article class="card">
+            <div class="card-icon">◈</div>
+            <h3>Tg Prediction</h3>
+            <p>
+                Uses a trained ExtraTrees regression model to estimate
+                polymer glass transition temperature in Kelvin and Celsius.
+            </p>
+        </article>
+
+        <article class="card">
+            <div class="card-icon">◎</div>
+            <h3>Prediction Assessment</h3>
+            <p>
+                Presents a conformal prediction interval and an
+                applicability-domain assessment alongside predictions.
+            </p>
+        </article>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">100</div>
+            <div class="stat-label">POLYMER DESCRIPTORS</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">700</div>
+            <div class="stat-label">EXTRATREES ESTIMATORS</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">90%</div>
+            <div class="stat-label">CONFORMAL INTERVAL LEVEL</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">2</div>
+            <div class="stat-label">OUTPUT TEMPERATURE UNITS</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="eyebrow">PREDICTION WORKFLOW</div>
+        <h2>How PolyTg works</h2>
+
+        <div class="workflow">
+            <div class="workflow-item">
+                <strong>01 · Input</strong>
+                <span>Submit a polymer SMILES representation.</span>
+            </div>
+            <div class="workflow-item">
+                <strong>02 · Featurization</strong>
+                <span>Generate the model's polymer descriptors.</span>
+            </div>
+            <div class="workflow-item">
+                <strong>03 · Prediction</strong>
+                <span>Estimate Tg using the trained ExtraTrees model.</span>
+            </div>
+            <div class="workflow-item">
+                <strong>04 · Assessment</strong>
+                <span>Review uncertainty and applicability-domain status.</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PREDICTOR -->
+<section class="page" id="predictor">
+    <div class="eyebrow">MODEL INTERFACE · INFERENCE</div>
+    <h2>Polymer Tg Predictor</h2>
+    <p class="section-desc">
+        Submit a polymer SMILES structure to estimate its glass transition temperature.
+    </p>
+
+    <div class="panel placeholder">
+        <div>
+            <div style="font-size:35px;margin-bottom:15px;">⌬</div>
+            <strong>Prediction interface coming next</strong>
+            <p>We will connect this workspace to your existing Python prediction pipeline.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="page" id="architecture">
+    <div class="eyebrow">TECHNICAL OVERVIEW</div>
+    <h2>Model Architecture</h2>
+    <p class="section-desc">
+        The computational workflow behind PolyTg.
+    </p>
+
+    <div class="panel">
+        <h3>Model configuration</h3>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">ExtraTrees</div>
+                <div class="stat-label">REGRESSION ALGORITHM</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">700</div>
+                <div class="stat-label">TREES</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">100</div>
+                <div class="stat-label">INPUT DESCRIPTORS</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">PSMILES</div>
+                <div class="stat-label">STRUCTURE INPUT</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Descriptor groups</h3>
+        <p class="section-desc">
+            The featurization pipeline combines three levels of polymer representation.
+        </p>
+        <span class="tag">Backbone-level</span>
+        <span class="tag">Sidechain-level</span>
+        <span class="tag">Full-polymer-level</span>
+    </div>
+
+    <div class="panel">
+        <h3>Prediction assessment</h3>
+        <p class="section-desc">
+            PolyTg uses a conformal prediction configuration to construct
+            a prediction interval. A nearest-neighbour distance assessment
+            provides an additional indication of how closely the input
+            resembles the model's training domain.
+        </p>
+    </div>
+</section>
+
+<!-- VALIDATION -->
+<section class="page" id="validation">
+    <div class="eyebrow">MODEL EVALUATION</div>
+    <h2>Validation & Performance</h2>
+    <p class="section-desc">
+        Reported evaluation results for the current trained model.
+    </p>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value">26.47 K</div>
+            <div class="stat-label">TEST MAE</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">38.90 K</div>
+            <div class="stat-label">TEST RMSE</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">0.879</div>
+            <div class="stat-label">TEST R²</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value">90.23%</div>
+            <div class="stat-label">TEST INTERVAL COVERAGE</div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Important limitations</h3>
+        <p class="section-desc">
+            These results describe the current evaluation and should not
+            be interpreted as a guarantee of performance on every polymer.
+            Performance under polymer-class grouping was lower than the
+            random test split. The applicability-domain indicator is a
+            caution flag, not a probability of correctness. Predictions
+            should be treated as research estimates rather than
+            experimental measurements.
+        </p>
+    </div>
+</section>
+
+<!-- ABOUT -->
+<section class="page" id="about">
+    <div class="eyebrow">ABOUT THE PROJECT</div>
+    <h2>Building computational tools for polymer science.</h2>
+
+    <div class="panel">
+        <h3>PolyTg</h3>
+        <p class="section-desc">
+            PolyTg explores the use of machine learning for polymer
+            property prediction, focusing on the estimation of glass
+            transition temperature from polymer structure.
+        </p>
+    </div>
+
+    <div class="panel">
+        <div class="eyebrow">MODEL ENGINEER</div>
+        <h2 style="font-size:25px;">Agboola Abdulrohemm Oyindamola</h2>
+        <p class="section-desc">
+            Machine learning · Computational chemistry · Polymer science
+        </p>
+    </div>
+</section>
+
+<footer class="footer">
+    <div><strong>PolyTg</strong> · Polymer Intelligence</div>
+    <div>Research Prototype · Machine Learning for Polymer Property Prediction</div>
+</footer>
+
+</main>
+
+<script>
+function showPage(pageName) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+
+    document.querySelectorAll('.nav button').forEach(button => {
+        button.classList.toggle(
+            'active',
+            button.dataset.page === pageName
+        );
+    });
+
+    document.getElementById(pageName).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.nav button').forEach(button => {
+    button.addEventListener('click', () => {
+        showPage(button.dataset.page);
+    });
+});
+</script>
+
+</body>
+</html>
