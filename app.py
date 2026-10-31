@@ -1,198 +1,280 @@
 
+import os
+import traceback
+
 import streamlit as st
+import streamlit.components.v1 as components
+import pandas as pd
+import numpy as np
+import joblib
+
+from huggingface_hub import hf_hub_download
+from featurizer import get_featurizer
+from polymetrix.featurizers.polymer import Polymer
+
+
+# --------------------------------------------------
+# PAGE CONFIGURATION
+# --------------------------------------------------
 
 st.set_page_config(
     page_title="PolyTg | Polymer Intelligence",
     page_icon="🧪",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# ---------- PAGE STYLE ----------
+# --------------------------------------------------
+# CUSTOM FRONTEND COMPONENT
+# --------------------------------------------------
 
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #07111f;
-        color: #e5edf5;
-    }
+FRONTEND_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "frontend"
+)
 
-    [data-testid="stSidebar"] {
-        background-color: #0b1929;
-        border-right: 1px solid #1c3448;
-    }
-
-    .hero {
-        padding: 65px 10px 45px 10px;
-    }
-
-    .eyebrow {
-        color: #35d0c1;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-    }
-
-    .hero h1 {
-        color: #f3f7fb;
-        font-size: 58px;
-        font-weight: 750;
-        line-height: 1.1;
-        margin-top: 18px;
-        margin-bottom: 20px;
-    }
-
-    .hero p {
-        color: #a9bacb;
-        font-size: 18px;
-        line-height: 1.8;
-        max-width: 760px;
-    }
-
-    .accent {
-        color: #35d0c1;
-    }
-
-    .section-label {
-        color: #35d0c1;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 2px;
-    }
-
-    .info-card {
-        background: #0d1d2e;
-        border: 1px solid #1b354a;
-        border-radius: 12px;
-        padding: 24px;
-        min-height: 175px;
-    }
-
-    .info-card h3 {
-        color: #f0f5fa;
-        font-size: 19px;
-    }
-
-    .info-card p {
-        color: #a9bacb;
-        font-size: 14px;
-        line-height: 1.7;
-    }
-
-    .footer {
-        color: #71869b;
-        font-size: 12px;
-        border-top: 1px solid #1b354a;
-        padding-top: 20px;
-        margin-top: 65px;
-    }
-</style>
-""", unsafe_allow_html=True)
+polytg_frontend = components.declare_component(
+    "polytg_frontend",
+    path=FRONTEND_PATH
+)
 
 
-# ---------- HERO SECTION ----------
+# --------------------------------------------------
+# LOAD EXISTING MODEL ASSETS
+# --------------------------------------------------
 
-st.markdown("""
-<div class="hero">
-    <div class="eyebrow">Machine Learning · Polymer Science</div>
+@st.cache_resource
+def load_assets():
 
-    <h1>
-        Understanding polymers.<br>
-        Predicting <span class="accent">possibilities.</span>
-    </h1>
+    repo_id = "Abdulroheem/PolyTg"
 
-    <p>
-        PolyTg is a machine-learning platform for estimating the
-        glass transition temperature of polymers from their
-        polymer SMILES structures.
-        
-        By combining polymer descriptors, predictive modelling,
-        uncertainty estimation and applicability-domain assessment,
-        PolyTg provides a research-oriented approach to polymer
-        property prediction.
-    </p>
-</div>
-""", unsafe_allow_html=True)
+    model_path = hf_hub_download(
+        repo_id=repo_id,
+        filename="polymer_tg_extra_trees.pkl"
+    )
 
+    ad_path = hf_hub_download(
+        repo_id=repo_id,
+        filename="applicability_domain.pkl"
+    )
 
-# ---------- CALL TO ACTION ----------
+    uncertainty_path = hf_hub_download(
+        repo_id=repo_id,
+        filename="uncertainty_configuration.pkl"
+    )
 
-left, right = st.columns([1, 1])
+    model = joblib.load(model_path)
+    ad = joblib.load(ad_path)
+    uncertainty = joblib.load(uncertainty_path)
 
-with left:
-    if st.button(
-        "Open Tg Predictor →",
-        type="primary",
-        use_container_width=True
-    ):
-        st.switch_page("pages/Tg_Predictor.py")
+    featurizer, feature_columns = get_featurizer()
 
-with right:
-    st.markdown(
-        "<p style='color:#8da3b8; padding-top:8px;'>"
-        "Explore the platform and its scientific methodology."
-        "</p>",
-        unsafe_allow_html=True
+    return (
+        model,
+        ad,
+        uncertainty,
+        featurizer,
+        feature_columns
     )
 
 
-st.divider()
+# --------------------------------------------------
+# PREDICTION FUNCTION
+# --------------------------------------------------
+
+def predict_tg(
+    psmiles,
+    model,
+    ad,
+    uncertainty,
+    featurizer,
+    feature_columns
+):
+
+    polymer = Polymer.from_psmiles(psmiles)
+
+    features = np.asarray(
+        featurizer.featurize(polymer)
+    )
+
+    if features.ndim == 1:
+        features = features.reshape(1, -1)
+
+    generated_columns = list(feature_columns)
+    expected_columns = list(ad["feature_columns"])
+
+    if features.shape[1] != len(generated_columns):
+        raise ValueError(
+            "Generated feature count does not match "
+            "the featurizer's feature labels."
+        )
+
+    if len(set(generated_columns)) != len(generated_columns):
+        raise ValueError(
+            "Duplicate feature names were generated."
+        )
+
+    if set(generated_columns) != set(expected_columns):
+
+        missing = [
+            name for name in expected_columns
+            if name not in generated_columns
+        ]
+
+        unexpected = [
+            name for name in generated_columns
+            if name not in expected_columns
+        ]
+
+        raise ValueError(
+            f"Feature names do not match the trained model. "
+            f"Missing: {missing}. Unexpected: {unexpected}."
+        )
+
+    feature_positions = {
+        name: index
+        for index, name in enumerate(generated_columns)
+    }
+
+    reorder_indices = [
+        feature_positions[name]
+        for name in expected_columns
+    ]
+
+    features = features[:, reorder_indices]
+
+    X = pd.DataFrame(
+        features,
+        columns=expected_columns
+    )
+
+    # Tg prediction
+    prediction = float(model.predict(X)[0])
+
+    # Conformal interval
+    margin = float(
+        uncertainty["conformal_threshold"]
+    )
+
+    lower = prediction - margin
+    upper = prediction + margin
+
+    # Applicability-domain assessment
+    scaled = ad["scaler"].transform(X)
+
+    distance = float(
+        ad["nearest_neighbors"].kneighbors(
+            scaled,
+            n_neighbors=1
+        )[0][0][0]
+    )
+
+    threshold = float(ad["ad_threshold"])
+
+    within_domain = distance <= threshold
+
+    return {
+        "success": True,
+        "psmiles": psmiles,
+        "prediction_kelvin": round(prediction, 2),
+        "prediction_celsius": round(
+            prediction - 273.15, 2
+        ),
+        "lower_bound": round(lower, 2),
+        "upper_bound": round(upper, 2),
+        "interval_width": round(2 * margin, 2),
+        "nearest_distance": round(distance, 3),
+        "ad_threshold": round(threshold, 3),
+        "within_domain": within_domain
+    }
 
 
-# ---------- PLATFORM OVERVIEW ----------
+# --------------------------------------------------
+# MAIN APPLICATION
+# --------------------------------------------------
 
-st.markdown(
-    '<div class="section-label">PLATFORM OVERVIEW</div>',
-    unsafe_allow_html=True
+try:
+
+    (
+        model,
+        ad,
+        uncertainty,
+        featurizer,
+        feature_columns
+    ) = load_assets()
+
+except Exception as e:
+
+    st.error(f"Could not load model assets: {e}")
+    st.code(traceback.format_exc())
+    st.stop()
+
+
+# --------------------------------------------------
+# COMPONENT STATE
+# --------------------------------------------------
+
+if "polytg_result" not in st.session_state:
+    st.session_state.polytg_result = None
+
+if "polytg_error" not in st.session_state:
+    st.session_state.polytg_error = None
+
+
+# --------------------------------------------------
+# SEND DATA TO FRONTEND
+# --------------------------------------------------
+
+component_value = polytg_frontend(
+    results=st.session_state.polytg_result,
+    error=st.session_state.polytg_error,
+    height=1100,
+    key="polytg_interface"
 )
 
-st.markdown("## What PolyTg offers")
 
-col1, col2, col3 = st.columns(3)
+# --------------------------------------------------
+# HANDLE FRONTEND REQUESTS
+# --------------------------------------------------
 
-with col1:
-    st.markdown("""
-    <div class="info-card">
-        <h3>🧬 Polymer Representation</h3>
-        <p>
-            Submit polymer SMILES structures and generate
-            molecular and polymer-level descriptors for
-            machine-learning inference.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+if isinstance(component_value, dict):
 
-with col2:
-    st.markdown("""
-    <div class="info-card">
-        <h3>📊 Tg Prediction</h3>
-        <p>
-            Estimate polymer glass transition temperature
-            in Kelvin and Celsius using a trained ExtraTrees
-            regression model.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    action = component_value.get("action")
 
-with col3:
-    st.markdown("""
-    <div class="info-card">
-        <h3>🎯 Prediction Assessment</h3>
-        <p>
-            Examine conformal prediction intervals and
-            applicability-domain assessments to understand
-            prediction uncertainty and limitations.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    if action == "predict":
 
+        psmiles = str(
+            component_value.get("psmiles", "")
+        ).strip()
 
-# ---------- FOOTER ----------
+        if not psmiles:
 
-st.markdown("""
-<div class="footer">
-    PolyTg · Research Prototype<br>
-    Machine Learning for Polymer Property Prediction
-</div>
-""", unsafe_allow_html=True)
+            st.session_state.polytg_error = (
+                "Please enter a polymer SMILES."
+            )
+
+            st.session_state.polytg_result = None
+
+        else:
+
+            try:
+
+                result = predict_tg(
+                    psmiles,
+                    model,
+                    ad,
+                    uncertainty,
+                    featurizer,
+                    feature_columns
+                )
+
+                st.session_state.polytg_result = result
+                st.session_state.polytg_error = None
+
+            except Exception as e:
+
+                st.session_state.polytg_result = None
+
+                st.session_state.polytg_error = str(e)
+
+        st.rerun()
