@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from model_service import predict_tg
+from backend.model_service import predict_tg
 
 
 app = FastAPI(
