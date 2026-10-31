@@ -453,8 +453,69 @@ h2 {
     </div>
 </div>
 
-    <div class="panel">
-        <div class="eyebrow">PREDICTION WORKFLOW</div>
+    <div class="panel" style="
+    margin-top:20px;
+    padding:26px;
+    background:linear-gradient(135deg,#101f30,#0a1521);
+    border:1px solid rgba(91,167,255,0.22);
+">
+    <div class="eyebrow">UNCERTAINTY ASSESSMENT</div>
+
+    <h3 style="margin-top:12px;">
+        90% Conformal Prediction Interval
+    </h3>
+
+    <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:12px;
+        margin:24px 0 14px;
+    ">
+        <div>
+            <div class="eyebrow">LOWER BOUND</div>
+            <div id="intervalLower" style="
+                font-size:22px;
+                font-weight:750;
+                color:#91c8ff;
+                margin-top:7px;
+            ">—</div>
+        </div>
+
+        <div style="text-align:right;">
+            <div class="eyebrow">UPPER BOUND</div>
+            <div id="intervalUpper" style="
+                font-size:22px;
+                font-weight:750;
+                color:#91c8ff;
+                margin-top:7px;
+            ">—</div>
+        </div>
+    </div>
+
+    <div style="
+        height:9px;
+        border-radius:20px;
+        background:linear-gradient(90deg,#3989d6,#35d6bd);
+        margin:18px 0;
+    "></div>
+
+    <div style="
+        padding:14px;
+        border-radius:9px;
+        background:rgba(255,255,255,0.035);
+        color:#b6c7d5;
+        font-size:13px;
+        line-height:1.7;
+    ">
+        The model's prediction interval provides a range of plausible
+        Tg values based on calibration data. It is designed for
+        approximately 90% coverage under the calibration assumptions.
+        It does not guarantee the true Tg of an individual polymer
+        will fall within this interval.
+    </div>
+</div>
         <h2>How PolyTg works</h2>
 
         <div class="workflow">
@@ -822,8 +883,11 @@ h2 {
         document.getElementById("resultWidth").textContent =
             data.interval_width + " K";
 
-        document.getElementById("resultInterval").textContent =
-            data.lower_bound + " – " + data.upper_bound + " K";
+        document.getElementById("intervalLower").textContent =
+            data.lower_bound + " K";
+
+        document.getElementById("intervalUpper").textContent =
+            data.upper_bound + " K";
 
         document.getElementById("resultPSMILES").textContent =
             data.psmiles;
