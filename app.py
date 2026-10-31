@@ -5,6 +5,7 @@ import joblib
 
 from huggingface_hub import hf_hub_download
 from featurizer import get_featurizer
+from polymetrix.featurizers.polymer import Polymer
 
 
 st.set_page_config(
@@ -88,8 +89,11 @@ if st.button("Predict Tg", type="primary"):
 
         try:
 
-            polymer = featurizer.featurize([psmiles])
-            features = np.asarray(polymer)
+            polymer = Polymer.from_psmiles(psmiles)
+
+            features = np.asarray(
+                featurizer.featurize(polymer)
+            )
 
             if features.ndim == 1:
                 features = features.reshape(1, -1)
