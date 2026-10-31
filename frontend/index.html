@@ -405,24 +405,53 @@ h2 {
         </article>
     </div>
 
-    <div class="stats">
-        <div class="stat">
-            <div class="stat-value">100</div>
-            <div class="stat-label">POLYMER DESCRIPTORS</div>
+    <div class="panel" style="
+    margin-top:24px;
+    padding:30px;
+    background:linear-gradient(135deg, #102638, #091521);
+    border:1px solid rgba(0,220,190,0.25);
+">
+    <div class="eyebrow">PREDICTED GLASS TRANSITION TEMPERATURE</div>
+
+    <div style="
+        display:flex;
+        align-items:baseline;
+        flex-wrap:wrap;
+        gap:12px;
+        margin:18px 0 8px;
+    ">
+        <span id="resultK" style="
+            font-size:clamp(42px, 7vw, 68px);
+            font-weight:850;
+            letter-spacing:-2px;
+            color:var(--cyan);
+        ">—</span>
+
+        <span style="font-size:18px;color:#91a8b9;">Kelvin</span>
+    </div>
+
+    <div style="font-size:20px;font-weight:650;color:#e6f0f7;">
+        <span id="resultC">—</span>
+        <span style="font-size:14px;color:#91a8b9;">Celsius</span>
+    </div>
+
+    <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+        gap:12px;
+        margin-top:28px;
+    ">
+        <div>
+            <div class="eyebrow">APPLICABILITY DOMAIN</div>
+            <div id="resultAD" style="font-size:17px;font-weight:750;margin-top:8px;">—</div>
         </div>
-        <div class="stat">
-            <div class="stat-value">700</div>
-            <div class="stat-label">EXTRATREES ESTIMATORS</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value">90%</div>
-            <div class="stat-label">CONFORMAL INTERVAL LEVEL</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value">2</div>
-            <div class="stat-label">OUTPUT TEMPERATURE UNITS</div>
+
+        <div>
+            <div class="eyebrow">INTERVAL WIDTH</div>
+            <div id="resultWidth" style="font-size:17px;font-weight:750;margin-top:8px;">—</div>
         </div>
     </div>
+</div>
 
     <div class="panel">
         <div class="eyebrow">PREDICTION WORKFLOW</div>
