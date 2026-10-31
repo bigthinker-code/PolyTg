@@ -24,7 +24,6 @@ st.write(
 
 @st.cache_resource
 def load_assets():
-
     repo_id = "Abdulroheem/PolyTg"
 
     model_path = hf_hub_download(
@@ -48,13 +47,7 @@ def load_assets():
 
     featurizer, feature_columns = get_featurizer()
 
-    return (
-        model,
-        ad,
-        uncertainty,
-        featurizer,
-        feature_columns
-    )
+    return model, ad, uncertainty, featurizer, feature_columns
 
 
 try:
@@ -68,7 +61,8 @@ try:
 
 except Exception as e:
     import traceback
-    st.error(f"Prediction failed: {e}")
+
+    st.error(f"Could not load project files: {e}")
     st.code(traceback.format_exc())
     st.stop()
 
@@ -84,13 +78,10 @@ psmiles = st.text_input(
 if st.button("Predict Tg", type="primary"):
 
     if not psmiles.strip():
-
         st.warning("Please enter a polymer SMILES.")
 
     else:
-
         try:
-
             polymer = Polymer.from_psmiles(psmiles)
 
             features = np.asarray(
@@ -106,32 +97,40 @@ if st.button("Predict Tg", type="primary"):
                     "the expected feature count."
                 )
 
-            expected_columns = ad["feature_columns"]
+            expected_columns = list(ad["feature_columns"])
+            generated_columns = list(feature_columns)
 
-            if list(feature_columns) != list(expected_columns):
-    st.error("Feature order mismatch")
+            if generated_columns != expected_columns:
+                st.error("Feature order mismatch")
 
-    st.write("Generated feature count:", len(feature_columns))
-    st.write("Expected feature count:", len(expected_columns))
+                st.write(
+                    "Generated feature count:",
+                    len(generated_columns)
+                )
 
-    differences = []
+                st.write(
+                    "Expected feature count:",
+                    len(expected_columns)
+                )
 
-    for i, (generated, expected) in enumerate(
-        zip(feature_columns, expected_columns)
-    ):
-        if generated != expected:
-            differences.append({
-                "Position": i,
-                "Generated": generated,
-                "Expected": expected
-            })
+                differences = []
 
-    st.dataframe(pd.DataFrame(differences))
-    st.stop()
+                for i, (generated, expected) in enumerate(
+                    zip(generated_columns, expected_columns)
+                ):
+                    if generated != expected:
+                        differences.append({
+                            "Position": i,
+                            "Generated": generated,
+                            "Expected": expected
+                        })
+
+                st.dataframe(pd.DataFrame(differences))
+                st.stop()
 
             X = pd.DataFrame(
                 features,
-                columns=feature_columns
+                columns=generated_columns
             )
 
             prediction = float(model.predict(X)[0])
@@ -148,7 +147,6 @@ if st.button("Predict Tg", type="primary"):
             col1, col2 = st.columns(2)
 
             with col1:
-
                 st.metric(
                     "Predicted Tg (Kelvin)",
                     f"{prediction:.2f} K"
@@ -160,7 +158,6 @@ if st.button("Predict Tg", type="primary"):
                 )
 
             with col2:
-
                 st.metric(
                     "90% Conformal Interval",
                     f"{lower:.2f} – {upper:.2f} K"
@@ -193,13 +190,10 @@ if st.button("Predict Tg", type="primary"):
             )
 
             if distance <= threshold:
-
                 st.success(
                     "Within the model's applicability domain."
                 )
-
             else:
-
                 st.warning(
                     "Outside the model's applicability domain. "
                     "Treat this prediction with extra caution."
@@ -214,8 +208,10 @@ if st.button("Predict Tg", type="primary"):
             )
 
         except Exception as e:
+            import traceback
 
             st.error(f"Prediction failed: {e}")
+            st.code(traceback.format_exc())
 
             st.info(
                 "Check that the PSMILES is valid and supported "
