@@ -91,22 +91,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ---------- SIDEBAR ----------
-
-with st.sidebar:
-    st.markdown("## 🧪 PolyTg")
-    st.caption("POLYMER INTELLIGENCE")
-    st.divider()
-
-    st.markdown("### Navigation")
-    st.page_link("app.py", label="Home", icon="🏠")
-    st.page_link(
-        "pages/Tg_Predictor.py",
-        label="Tg Predictor",
-        icon="🧬"
-    )
-
-
 # ---------- HERO SECTION ----------
 
 st.markdown("""
