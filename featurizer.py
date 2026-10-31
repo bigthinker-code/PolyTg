@@ -297,8 +297,8 @@ def main(
 
 def get_featurizer():
     configs = [
-        ("sidechainlevel.features", SIDECHAIN_LEVEL_FEATURIZERS),
         ("backbonelevel.features", BACKBONE_LEVEL_FEATURIZERS),
+        ("sidechainlevel.features", SIDECHAIN_LEVEL_FEATURIZERS),
         ("fullpolymerlevel.features", FULL_POLYMER_FEATURIZERS)
     ]
 
